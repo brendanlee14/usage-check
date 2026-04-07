@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>API Usage Tracker</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7c3aed">
+<style>
+:root{--bg:#0f172a;--bg2:#1e293b;--card:#1e293b;--border:#334155;--txt:#f1f5f9;--txt2:#94a3b8;--or:#8b5cf6;--vc:#06b6d4;--gc:#f97316;--ok:#22c55e;--err:#ef4444;--r:10px}
+[data-theme=light]{--bg:#f8fafc;--bg2:#f1f5f9;--card:#fff;--border:#e2e8f0;--txt:#0f172a;--txt2:#64748b}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+a{color:inherit}
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;position:sticky;top:0;z-index:10}
+header h1{font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:8px}
+.hdr-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ts{font-size:.75rem;color:var(--txt2)}
+button{cursor:pointer;border:none;border-radius:var(--r);font-size:.85rem;padding:6px 12px;font-family:inherit}
+.btn-primary{background:var(--or);color:#fff}
+.btn-icon{background:var(--bg);border:1px solid var(--border);color:var(--txt);padding:6px 10px}
+.btn-icon:hover,.btn-primary:hover{opacity:.85}
+nav{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;gap:2px;padding:0 8px}
+.tab{background:none;border:none;padding:12px 14px;color:var(--txt2);font-size:.85rem;border-bottom:2px solid transparent;border-radius:0;white-space:nowrap}
+.tab.active{color:var(--txt);border-bottom-color:var(--or)}
+main{padding:16px;max-width:900px;margin:0 auto}
+.section{display:none}
+.section.active{display:block}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.card-title{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--txt2);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.card-title .dot{width:8px;height:8px;border-radius:50%}
+.big-num{font-size:1.8rem;font-weight:700;margin-bottom:4px}
+.sub{font-size:.8rem;color:var(--txt2)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:.72rem;font-weight:600}
+.badge.ok{background:#22c55e22;color:var(--ok)}
+.badge.err{background:#ef444422;color:var(--err)}
+.badge.warn{background:#f59e0b22;color:#f59e0b}
+.badge.idle{background:var(--bg2);color:var(--txt2)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:.85rem}
+.row:last-child{border:none}
+.row .lbl{color:var(--txt2)}
+.progress-bar{height:6px;background:var(--bg2);border-radius:3px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;border-radius:3px;transition:width .3s}
+h2{font-size:1.1rem;margin-bottom:12px}
+.tip{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;color:var(--txt2);font-size:.85rem;text-align:center}
+input[type=text],input[type=password],select{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;color:var(--txt);font-size:.9rem;font-family:inherit;margin-top:4px}
+input:focus,select:focus{outline:2px solid var(--or)}
+.field{margin-bottom:14px}
+label{font-size:.82rem;color:var(--txt2)}
+.field-row{display:flex;gap:8px}
+.field-row input{flex:1}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.divider{height:1px;background:var(--border);margin:16px 0}
+canvas{width:100%;display:block}
+.chart-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:16px}
+.chart-title{font-size:.8rem;color:var(--txt2);margin-bottom:8px}
+.legend{display:flex;gap:12px;margin-top:8px;font-size:.75rem;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-dot{width:10px;height:10px;border-radius:50%}
+.raw{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px;font-size:.75rem;font-family:monospace;overflow:auto;max-height:300px;white-space:pre-wrap;margin-top:8px}
+.loading{opacity:.5;pointer-events:none}
+#install-bar{background:var(--or);color:#fff;padding:10px 16px;display:none;align-items:center;justify-content:space-between;font-size:.85rem}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div id="install-bar">
+  <span>📲 Install this app on your device</span>
+  <button onclick="installApp()" style="background:#fff;color:#7c3aed;padding:4px 12px;border-radius:6px;border:none;cursor:pointer;font-size:.8rem">Install</button>
+</div>
+
+<header>
+  <h1>📊 API Usage Tracker</h1>
+  <div class="hdr-right">
+    <span class="ts" id="last-updated">Not refreshed yet</span>
+    <button class="btn-primary" id="refresh-btn" onclick="refreshAll()">Refresh</button>
+    <button class="btn-icon" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+  </div>
+</header>
+
+<nav>
+  <button class="tab active" onclick="showTab('dashboard')">Dashboard</button>
+  <button class="tab" onclick="showTab('openrouter')">OpenRouter</button>
+  <button class="tab" onclick="showTab('venice')">Venice AI</button>
+  <button class="tab" onclick="showTab('google')">Google AI</button>
+  <button class="tab" onclick="showTab('history')">History</button>
+  <button class="tab" onclick="showTab('settings')">⚙ Settings</button>
+</nav>
+
+<main>
+
+<!-- DASHBOARD -->
+<div class="section active" id="sec-dashboard">
+  <div class="cards" id="dash-cards">
+    <div class="tip">Add your API keys in ⚙ Settings, then click Refresh.</div>
+  </div>
+</div>
+
+<!-- OPENROUTER -->
+<div class="section" id="sec-openrouter">
+  <div class="section-header">
+    <h2>OpenRouter</h2>
+    <span id="or-badge" class="badge idle">—</span>
+  </div>
+  <div id="or-detail"><div class="tip">No data yet. Add your API key in Settings.</div></div>
+</div>
+
+<!-- VENICE -->
+<div class="section" id="sec-venice">
+  <div class="section-header">
+    <h2>Venice AI</h2>
+    <span id="vc-badge" class="badge idle">—</span>
+  </div>
+  <div id="vc-detail"><div class="tip">No data yet. Add your API key in Settings.</div></div>
+</div>
+
+<!-- GOOGLE -->
+<div class="section" id="sec-google">
+  <div class="section-header">
+    <h2>Google AI (Gemini)</h2>
+    <span id="gc-badge" class="badge idle">—</span>
+  </div>
+  <div id="gc-detail"><div class="tip">No data yet. Add your API key in Settings.</div></div>
+</div>
+
+<!-- HISTORY -->
+<div class="section" id="sec-history">
+  <div class="section-header">
+    <h2>Usage History</h2>
+    <button class="btn-icon" onclick="clearHistory()" style="font-size:.75rem">Clear</button>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">OpenRouter spend over time ($)</div>
+    <canvas id="chart-or" height="120"></canvas>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">Snapshot log</div>
+    <div id="history-log" style="font-size:.78rem;color:var(--txt2)">No history yet.</div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="section" id="sec-settings">
+  <h2>Settings</h2>
+  <div class="divider"></div>
+
+  <div class="field">
+    <label>OpenRouter API Key</label>
+    <div class="field-row">
+      <input type="password" id="s-or-key" placeholder="sk-or-v1-...">
+      <button class="btn-icon" onclick="toggleVis('s-or-key')">👁</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Venice AI API Key</label>
+    <div class="field-row">
+      <input type="password" id="s-vc-key" placeholder="venice-...">
+      <button class="btn-icon" onclick="toggleVis('s-vc-key')">👁</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Google AI API Key (Gemini)</label>
+    <div class="field-row">
+      <input type="password" id="s-gc-key" placeholder="AIza...">
+      <button class="btn-icon" onclick="toggleVis('s-gc-key')">👁</button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="field">
+    <label>Auto-refresh</label>
+    <select id="s-interval" style="margin-top:4px">
+      <option value="0">Off</option>
+      <option value="60">Every 1 minute</option>
+      <option value="300">Every 5 minutes</option>
+      <option value="600">Every 10 minutes</option>
+      <option value="1800">Every 30 minutes</option>
+    </select>
+  </div>
+
+  <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
+  <button class="btn-icon" onclick="clearAll()" style="margin-left:8px;color:var(--err)">Clear all data</button>
+
+  <div class="divider"></div>
+  <div style="font-size:.75rem;color:var(--txt2)">⚠ API keys are stored in your browser's localStorage. Do not use on shared devices.</div>
+</div>
+
+</main>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const S = {
+  settings: { orKey:'', vcKey:'', gcKey:'', interval:0 },
+  data: {},
+  history: [],
+  timer: null,
+  deferredInstall: null,
+};
+
+// ── Storage ────────────────────────────────────────────────────────────────
+function load() {
+  try {
+    const s = localStorage.getItem('aut_settings');
+    if (s) S.settings = {...S.settings, ...JSON.parse(s)};
+    const h = localStorage.getItem('aut_history');
+    if (h) S.history = JSON.parse(h);
+  } catch(e){}
+  // populate settings fields
+  document.getElementById('s-or-key').value = S.settings.orKey || '';
+  document.getElementById('s-vc-key').value = S.settings.vcKey || '';
+  document.getElementById('s-gc-key').value = S.settings.gcKey || '';
+  document.getElementById('s-interval').value = S.settings.interval || 0;
+  applyTheme(S.settings.theme);
+}
+
+function saveSettings() {
+  S.settings.orKey = document.getElementById('s-or-key').value.trim();
+  S.settings.vcKey = document.getElementById('s-vc-key').value.trim();
+  S.settings.gcKey = document.getElementById('s-gc-key').value.trim();
+  S.settings.interval = parseInt(document.getElementById('s-interval').value);
+  localStorage.setItem('aut_settings', JSON.stringify(S.settings));
+  setupAutoRefresh();
+  alert('Settings saved!');
+}
+
+function addHistory(snap) {
+  S.history.push(snap);
+  if (S.history.length > 120) S.history = S.history.slice(-120);
+  localStorage.setItem('aut_history', JSON.stringify(S.history));
+}
+
+function clearHistory() {
+  if (!confirm('Clear all history?')) return;
+  S.history = [];
+  localStorage.removeItem('aut_history');
+  renderHistory();
+}
+
+function clearAll() {
+  if (!confirm('Clear all data and keys?')) return;
+  localStorage.clear();
+  location.reload();
+}
+
+// ── API calls ──────────────────────────────────────────────────────────────
+async function apiFetch(url, key, headers={}) {
+  const r = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${key}`, ...headers }
+  });
+  const json = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(json.error?.message || json.message || `HTTP ${r.status}`), {status: r.status});
+  return json;
+}
+
+async function fetchOpenRouter(key) {
+  return apiFetch('https://openrouter.ai/api/v1/auth/key', key);
+}
+
+async function fetchVenice(key) {
+  // Try main billing endpoint, then fallback
+  const endpoints = [
+    'https://api.venice.ai/api/v1/billing/credits',
+    'https://api.venice.ai/api/v1/api-key/rate_limits',
+    'https://api.venice.ai/api/v1/api-key/info',
+  ];
+  let lastErr;
+  for (const ep of endpoints) {
+    try {
+      const d = await apiFetch(ep, key);
+      return { _endpoint: ep, ...d };
+    } catch(e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr;
+}
+
+async function fetchGoogle(key) {
+  // Gemini: list models to verify key, check usage via generateContent quota
+  const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}&pageSize=50`;
+  const r = await fetch(url);
+  const json = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(json.error?.message || `HTTP ${r.status}`);
+  return json;
+}
+
+// ── Refresh ────────────────────────────────────────────────────────────────
+async function refreshAll() {
+  const btn = document.getElementById('refresh-btn');
+  btn.innerHTML = '<span class="spinner"></span>Refreshing…';
+  btn.disabled = true;
+
+  const snap = { ts: Date.now() };
+  const tasks = [];
+
+  if (S.settings.orKey) {
+    tasks.push(
+      fetchOpenRouter(S.settings.orKey)
+        .then(d => { S.data.or = d; snap.or = d; })
+        .catch(e => { S.data.orErr = e.message; snap.orErr = e.message; })
+    );
+  }
+  if (S.settings.vcKey) {
+    tasks.push(
+      fetchVenice(S.settings.vcKey)
+        .then(d => { S.data.vc = d; snap.vc = d; })
+        .catch(e => { S.data.vcErr = e.message; snap.vcErr = e.message; })
+    );
+  }
+  if (S.settings.gcKey) {
+    tasks.push(
+      fetchGoogle(S.settings.gcKey)
+        .then(d => { S.data.gc = d; snap.gc = d; })
+        .catch(e => { S.data.gcErr = e.message; snap.gcErr = e.message; })
+    );
+  }
+
+  await Promise.all(tasks);
+  addHistory(snap);
+  renderAll();
+
+  const now = new Date().toLocaleTimeString();
+  document.getElementById('last-updated').textContent = `Updated ${now}`;
+  btn.innerHTML = 'Refresh';
+  btn.disabled = false;
+}
+
+// ── Render helpers ─────────────────────────────────────────────────────────
+function fmt$(v) { return v === undefined || v === null ? '—' : `$${parseFloat(v).toFixed(4)}`; }
+function fmtN(v) { return v === undefined || v === null ? '—' : parseFloat(v).toLocaleString(); }
+
+function renderAll() {
+  renderDashboard();
+  renderOR();
+  renderVC();
+  renderGC();
+  renderHistory();
+}
+
+function renderDashboard() {
+  const cards = [];
+
+  // OpenRouter card
+  if (S.settings.orKey || S.data.or) {
+    const d = S.data.or?.data;
+    const err = S.data.orErr;
+    cards.push(`
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--or)"></span>OpenRouter ${err ? '<span class="badge err">Error</span>' : d ? '<span class="badge ok">Active</span>' : '<span class="badge idle">—</span>'}</div>
+        ${err ? `<div style="color:var(--err);font-size:.8rem">${err}</div>` : d ? `
+          <div class="big-num" style="color:var(--or)">${fmt$(d.usage)}</div>
+          <div class="sub">used</div>
+          ${d.limit ? `
+            <div class="progress-bar" style="margin-top:10px"><div class="progress-fill" style="background:var(--or);width:${Math.min(100,(d.usage/d.limit)*100)}%"></div></div>
+            <div class="sub" style="margin-top:4px">${fmt$(d.limit_remaining)} remaining of ${fmt$(d.limit)}</div>
+          ` : `<div class="sub" style="margin-top:4px">No spending limit set</div>`}
+          ${d.rate_limit ? `<div class="sub" style="margin-top:6px">Rate: ${d.rate_limit.requests} req/${d.rate_limit.interval}</div>` : ''}
+        ` : '<div class="sub">Click Refresh to load</div>'}
+      </div>`);
+  }
+
+  // Venice card
+  if (S.settings.vcKey || S.data.vc) {
+    const d = S.data.vc;
+    const err = S.data.vcErr;
+    cards.push(`
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--vc)"></span>Venice AI ${err ? '<span class="badge err">Error</span>' : d ? '<span class="badge ok">Active</span>' : '<span class="badge idle">—</span>'}</div>
+        ${err ? `<div style="color:var(--err);font-size:.8rem">${err}</div>` : d ? `
+          ${d.credits !== undefined ? `<div class="big-num" style="color:var(--vc)">${fmtN(d.credits)}</div><div class="sub">VCU balance</div>` : ''}
+          ${d.vcu_balance !== undefined ? `<div class="big-num" style="color:var(--vc)">${fmtN(d.vcu_balance)}</div><div class="sub">VCU balance</div>` : ''}
+          ${d.usd_balance !== undefined ? `<div class="sub" style="margin-top:6px">${fmt$(d.usd_balance)} USD</div>` : ''}
+          ${d.requests_per_minute !== undefined ? `<div class="sub" style="margin-top:6px">Rate: ${d.requests_per_minute} req/min</div>` : ''}
+          <div class="sub" style="margin-top:6px;font-size:.7rem;opacity:.6">via ${d._endpoint?.split('/').slice(-2).join('/')}</div>
+        ` : '<div class="sub">Click Refresh to load</div>'}
+      </div>`);
+  }
+
+  // Google card
+  if (S.settings.gcKey || S.data.gc) {
+    const d = S.data.gc;
+    const err = S.data.gcErr;
+    const modelCount = d?.models?.length;
+    cards.push(`
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--gc)"></span>Google AI ${err ? '<span class="badge err">Error</span>' : d ? '<span class="badge ok">Active</span>' : '<span class="badge idle">—</span>'}</div>
+        ${err ? `<div style="color:var(--err);font-size:.8rem">${err}</div>` : d ? `
+          <div class="big-num" style="color:var(--gc)">${modelCount ?? '—'}</div>
+          <div class="sub">models available</div>
+          <div class="sub" style="margin-top:6px">Key is valid ✓</div>
+          <div class="sub" style="margin-top:4px;font-size:.72rem">Quota info: <a href="https://console.cloud.google.com/apis/dashboard" target="_blank" style="color:var(--gc)">Cloud Console ↗</a></div>
+        ` : '<div class="sub">Click Refresh to load</div>'}
+      </div>`);
+  }
+
+  const el = document.getElementById('dash-cards');
+  el.innerHTML = cards.length ? cards.join('') : '<div class="tip">Add your API keys in ⚙ Settings, then click Refresh.</div>';
+}
+
+function renderOR() {
+  const d = S.data.or?.data;
+  const err = S.data.orErr;
+  const badge = document.getElementById('or-badge');
+  const detail = document.getElementById('or-detail');
+
+  if (err) {
+    badge.className = 'badge err'; badge.textContent = 'Error';
+    detail.innerHTML = `<div class="card"><div style="color:var(--err)">${err}</div></div>`;
+    return;
+  }
+  if (!d) { badge.className='badge idle'; badge.textContent='—'; return; }
+
+  badge.className = 'badge ok'; badge.textContent = 'Active';
+  detail.innerHTML = `
+    <div class="card">
+      <div class="row"><span class="lbl">Key label</span><span>${d.label || '(unnamed)'}</span></div>
+      <div class="row"><span class="lbl">Total usage</span><span style="color:var(--or);font-weight:600">${fmt$(d.usage)}</span></div>
+      <div class="row"><span class="lbl">Spend limit</span><span>${d.limit ? fmt$(d.limit) : 'None'}</span></div>
+      <div class="row"><span class="lbl">Remaining</span><span>${d.limit_remaining !== null ? fmt$(d.limit_remaining) : 'Unlimited'}</span></div>
+      <div class="row"><span class="lbl">Free tier</span><span>${d.is_free_tier ? 'Yes' : 'No'}</span></div>
+      ${d.rate_limit ? `
+      <div class="row"><span class="lbl">Rate limit</span><span>${d.rate_limit.requests} req / ${d.rate_limit.interval}</span></div>` : ''}
+    </div>
+    ${d.limit ? `
+    <div class="card" style="margin-top:12px">
+      <div class="chart-title">Budget used: ${((d.usage/d.limit)*100).toFixed(1)}%</div>
+      <div class="progress-bar"><div class="progress-fill" style="background:var(--or);width:${Math.min(100,(d.usage/d.limit)*100)}%"></div></div>
+    </div>` : ''}
+    <div class="card" style="margin-top:12px">
+      <div class="chart-title">Raw response</div>
+      <div class="raw">${JSON.stringify(S.data.or, null, 2)}</div>
+    </div>`;
+}
+
+function renderVC() {
+  const d = S.data.vc;
+  const err = S.data.vcErr;
+  const badge = document.getElementById('vc-badge');
+  const detail = document.getElementById('vc-detail');
+
+  if (err) {
+    badge.className = 'badge err'; badge.textContent = 'Error';
+    detail.innerHTML = `<div class="card"><div style="color:var(--err);margin-bottom:8px">${err}</div>
+      <div class="sub">Venice may restrict CORS for browser requests. Consider using a CORS proxy or checking your Venice dashboard directly at <a href="https://venice.ai/dashboard" target="_blank" style="color:var(--vc)">venice.ai/dashboard ↗</a></div></div>`;
+    return;
+  }
+  if (!d) { badge.className='badge idle'; badge.textContent='—'; return; }
+
+  badge.className = 'badge ok'; badge.textContent = 'Active';
+  // Build rows from whatever fields the API returned
+  const skip = new Set(['_endpoint']);
+  const rows = Object.entries(d).filter(([k]) => !skip.has(k)).map(([k,v]) =>
+    `<div class="row"><span class="lbl">${k.replace(/_/g,' ')}</span><span>${typeof v === 'object' ? JSON.stringify(v) : v}</span></div>`
+  ).join('');
+
+  detail.innerHTML = `
+    <div class="card">${rows || '<div class="sub">No fields returned</div>'}</div>
+    <div class="card" style="margin-top:12px">
+      <div class="chart-title">Raw response</div>
+      <div class="raw">${JSON.stringify(d, null, 2)}</div>
+    </div>`;
+}
+
+function renderGC() {
+  const d = S.data.gc;
+  const err = S.data.gcErr;
+  const badge = document.getElementById('gc-badge');
+  const detail = document.getElementById('gc-detail');
+
+  if (err) {
+    badge.className = 'badge err'; badge.textContent = 'Error';
+    detail.innerHTML = `<div class="card"><div style="color:var(--err)">${err}</div></div>`;
+    return;
+  }
+  if (!d) { badge.className='badge idle'; badge.textContent='—'; return; }
+
+  badge.className = 'badge ok'; badge.textContent = 'Active';
+  const models = (d.models || []).slice(0, 20);
+  const rows = models.map(m => {
+    const name = m.name?.replace('models/','') || m.displayName || '?';
+    return `<div class="row"><span>${name}</span><span class="sub">${m.supportedGenerationMethods?.join(', ') || ''}</span></div>`;
+  }).join('');
+
+  detail.innerHTML = `
+    <div class="card">
+      <div class="row"><span class="lbl">Models available</span><span style="color:var(--gc);font-weight:600">${d.models?.length ?? 0}</span></div>
+      <div class="row"><span class="lbl">Key status</span><span class="badge ok">Valid</span></div>
+      <div class="row"><span class="lbl">Quota dashboard</span><span><a href="https://console.cloud.google.com/apis/dashboard" target="_blank" style="color:var(--gc)">Cloud Console ↗</a></span></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="chart-title">Available models (first 20)</div>
+      ${rows}
+    </div>`;
+}
+
+function renderHistory() {
+  drawORChart();
+  const log = document.getElementById('history-log');
+  if (!S.history.length) { log.textContent = 'No history yet.'; return; }
+  const rows = [...S.history].reverse().slice(0, 30).map(h => {
+    const t = new Date(h.ts).toLocaleString();
+    const orU = h.or?.data?.usage !== undefined ? `OR: ${fmt$(h.or.data.usage)}` : '';
+    const vcB = h.vc?.credits !== undefined ? `Venice: ${fmtN(h.vc.credits)} VCU` : '';
+    const gcM = h.gc?.models ? `Google: ${h.gc.models.length} models` : '';
+    const parts = [orU, vcB, gcM].filter(Boolean).join(' · ') || '(no data)';
+    return `<div style="padding:4px 0;border-bottom:1px solid var(--border)">${t} — ${parts}</div>`;
+  }).join('');
+  log.innerHTML = rows;
+}
+
+function drawORChart() {
+  const canvas = document.getElementById('chart-or');
+  if (!canvas) return;
+  const W = canvas.offsetWidth || 600;
+  canvas.width = W; canvas.height = 120;
+  const ctx = canvas.getContext('2d');
+  const data = S.history.filter(h => h.or?.data?.usage !== undefined);
+  if (data.length < 2) {
+    ctx.fillStyle = 'var(--txt2)';
+    ctx.font = '12px system-ui';
+    ctx.fillText('Not enough data yet (need 2+ refreshes)', 10, 60);
+    return;
+  }
+  const vals = data.map(h => parseFloat(h.or.data.usage));
+  const min = Math.min(...vals);
+  const max = Math.max(...vals) || 0.001;
+  const pad = { top:10, bottom:20, left:40, right:10 };
+  const cw = W - pad.left - pad.right;
+  const ch = 120 - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, W, 120);
+  // grid
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1;
+  [0, 0.5, 1].forEach(f => {
+    const y = pad.top + ch * (1 - f);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.fillStyle = '#64748b'; ctx.font = '10px system-ui'; ctx.textAlign = 'right';
+    ctx.fillText(fmt$(min + f*(max-min)), pad.left - 4, y + 3);
+  });
+  // line
+  ctx.strokeStyle = '#8b5cf6'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  data.forEach((h, i) => {
+    const x = pad.left + (i / (data.length - 1)) * cw;
+    const y = pad.top + ch * (1 - (vals[i] - min) / (max - min));
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  // dots
+  data.forEach((h, i) => {
+    const x = pad.left + (i / (data.length - 1)) * cw;
+    const y = pad.top + ch * (1 - (vals[i] - min) / (max - min));
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2);
+    ctx.fillStyle = '#8b5cf6'; ctx.fill();
+  });
+}
+
+// ── UI ─────────────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`sec-${name}`).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'history') renderHistory();
+}
+
+function toggleVis(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const t = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  html.dataset.theme = t;
+  S.settings.theme = t;
+  localStorage.setItem('aut_settings', JSON.stringify(S.settings));
+}
+
+function applyTheme(t) {
+  if (t) document.documentElement.dataset.theme = t;
+}
+
+// ── Auto-refresh ───────────────────────────────────────────────────────────
+function setupAutoRefresh() {
+  if (S.timer) clearInterval(S.timer);
+  const iv = parseInt(S.settings.interval);
+  if (iv > 0) S.timer = setInterval(refreshAll, iv * 1000);
+}
+
+// ── PWA ────────────────────────────────────────────────────────────────────
+function installApp() {
+  if (S.deferredInstall) {
+    S.deferredInstall.prompt();
+    S.deferredInstall.userChoice.then(() => { document.getElementById('install-bar').style.display='none'; });
+  }
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  S.deferredInstall = e;
+  document.getElementById('install-bar').style.display = 'flex';
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+load();
+setupAutoRefresh();
+// Auto-refresh on load if we have any keys
+if (S.settings.orKey || S.settings.vcKey || S.settings.gcKey) refreshAll();
+</script>
+</body>
+</html>
